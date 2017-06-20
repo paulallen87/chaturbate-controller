@@ -57,8 +57,10 @@ class ChaturbateController extends EventEmitter {
   }
 
   set state(val) {
-    this._state = state;
-    this.emit('state_change', val);
+    if (this._state != val) {
+      this._state = val;
+      this.emit('state_change', val);
+    }
   }
 
   get settings() {
@@ -182,22 +184,22 @@ class ChaturbateController extends EventEmitter {
   }
 
   _onHookRoomEntry(e) {
-    e.user.isHost = e.username == this.room;
+    e.user.isHost = e.user.username == this.room;
     return e;
   }
 
   _onHookRoomLeave(e) {
-    e.user.isHost = e.username == this.room;
+    e.user.isHost = e.user.username == this.room;
     return e;
   }
 
   _onHookRoomMessage(e) {
-    e.user.isHost = e.username == this.room;
+    e.user.isHost = e.user.username == this.room;
     return e;
   }
 
   _onHookTip(e) {
-    e.user.isHost = e.username == this.room;
+    e.user.isHost = e.user.username == this.room;
     return e;
   }
 }
