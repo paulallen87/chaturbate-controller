@@ -127,7 +127,7 @@ class ChaturbateController extends EventEmitter {
       'private_show_approved': (e) => this._onHookPrivateShowApproved(e),
       'group_show_request': (e) => this._onHookGroupShowRequest(e),
       'room_count': (e) => this._onHookRoomCount(e),
-      'room_entry': (e) > this._onHookRoomEntry(e),
+      'room_entry': (e) => this._onHookRoomEntry(e),
       'room_leave': (e) => this._onHookRoomLeave(e),
       'room_message': (e) => this._onHookRoomMessage(e),
       'tip': (e) => this._onHookTip(e)
