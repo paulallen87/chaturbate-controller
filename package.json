@@ -1,0 +1,36 @@
+{
+  "name": "@paulallen87/chaturbate-controller",
+  "version": "1.0.0",
+  "description": "A module for tracking the state of a Chaturbate profile.",
+  "main": "index.js",
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "scripts": {
+    "test": "node_modules/.bin/mocha --reporter spec",
+    "cover": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- -R spec test/*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paulallen87/chaturbate-controller.git"
+  },
+  "keywords": [
+    "chaturbate"
+  ],
+  "author": "“Paul Allen <“paul.allen.87.555@gmail.com”>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/paulallen87/chaturbate-controller/issues"
+  },
+  "homepage": "https://github.com/paulallen87/chaturbate-controller#readme",
+  "devDependencies": {
+    "chai": "^4.0.2",
+    "coveralls": "^2.13.1",
+    "istanbul": "next",
+    "mocha": "^3.4.2"
+  },
+  "dependencies": {
+    "@paulallen87/chaturbate-events": "^1.0.1",
+    "debug": "^2.6.8"
+  }
+}
