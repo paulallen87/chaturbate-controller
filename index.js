@@ -2,8 +2,29 @@
 
 const debug = require('debug')('chaturbate:controller');
 const EventEmitter = require('events').EventEmitter;
+const cheerio = require('cheerio');
 
 const ChaturbateEvents = require('@paulallen87/chaturbate-events');
+
+const State = {
+  INIT: 'INIT',
+  CONNECTING: 'CONNECTING',
+  CONNECTED: 'CONNECTED',
+  JOINED: 'JOINED',
+  LEAVE: 'LEAVE',
+  KICKED: 'KICKED',
+  DISCONNECTED: 'DISCONNECTED',
+  ERROR: 'ERROR',
+  FAIL: 'FAIL',
+  OFFLINE: 'OFFLINE'
+}
+
+const ModelStatus = {
+  PUBLIC: 'PUBLIC',
+  AWAY: 'AWAY',
+  PRIVATE: 'PRIVATE',
+  GROUP: 'GROUP'
+}
 
 class ChaturbateController extends EventEmitter {
 
@@ -15,19 +36,26 @@ class ChaturbateController extends EventEmitter {
     this._events.on('init', (e) => this._onInit(e));
     this._events.on('socket_open', () => this._onSocketOpen());
     this._events.on('socket_error', (e) => this._onSocketError(e));
-    this._events.on('socket_disconnected', (e) => this._onSocketDisconnected(e));
+    this._events.on('socket_close', (e) => this._onSocketClose(e));
 
+    this._api = {};
     this._hooks = {};
+    
+    // state
     this._state = null;
+    this._modelStatus = null;
+    this._appInfo = [];
 
     // general
-    this.online = false;
     this.room = null;
     this.gender = null;
     this.welcomeMessage = null;
     this.subject = null;
     this.spyPrice = 0;
     this.viewCount = 0;
+
+    // ui
+    this.panel = [];
 
     // group shows
     this.groupsEnabled = false;
@@ -39,10 +67,8 @@ class ChaturbateController extends EventEmitter {
     this.privatesEnabled = false;
     this.privatePrice = 0;
 
-    // unknowns
+    // TODO: unknowns
     this.hidden = false;
-    this.privateShow = false;
-    this.groupShow = false;
 
     this._initEventHooks();
     this._patchEvents();
@@ -58,15 +84,27 @@ class ChaturbateController extends EventEmitter {
 
   set state(val) {
     if (this._state != val) {
+      debug(`state changed to ${val}`)
       this._state = val;
-      this.emit('state_change', val);
+      this.emit('state_change', {state: val});
+    }
+  }
+
+  get modelStatus() {
+    return this._modelStatus;
+  }
+
+  set modelStatus(val) {
+    if (this._modelStatus != val) {
+      debug(`model status changed to ${val}`)
+      this._modelStatus = val;
+      this.emit('model_status_change', {status: val});
     }
   }
 
   get settings() {
     return {
       state: this.state,
-      online: this.online,
       room: this.room,
       welcomeMessage: this.welcomeMessage,
       subject: this.subject,
@@ -78,14 +116,46 @@ class ChaturbateController extends EventEmitter {
       groupNumUsersRequired: this.groupNumUsersRequired,
       groupNumUsersWaiting: this.groupNumUsersWaiting,
       privatesEnabled: this.privatesEnabled,
-      privatePrice: this.privatePrice
+      privatePrice: this.privatePrice,
+      modelStatus: this.modelStatus,
+      panel: this.panel,
+      appInfo: this.appInfo
     }
   }
 
-  _onInit(e) {
-    this.state = 'INIT';
+  get api() {
+    return this._api;
+  }
 
-    this.online = !!e.hasWebsocket;
+  set api(settings) {
+    this._api = {
+      getPanelUrl: settings.get_panel_url
+    }
+  }
+
+  get appInfo() {
+    return this._appInfo;
+  }
+
+  set appInfo(val) {
+    this._appInfo = val.split(',').map((app) => {
+      const [name, url] = app.split('|');
+      const [unused, slot] = url.match(/\?slot=(\d+)/);
+      return {
+        name: name,
+        url: url,
+        slot: slot
+      }
+    });
+  }
+
+  async _onInit(e) {
+
+    if (e.hasWebsocket) {
+      this.state = State.INIT;
+    } else {
+      this.state = State.OFFLINE;
+    }
 
     if (e.chatSettings) {
       this.welcomeMessage = e.chatSettings.welcome_message || '';
@@ -96,6 +166,10 @@ class ChaturbateController extends EventEmitter {
       this.groupPrice = e.chatSettings.group_price || 0;
       this.subject = e.chatSettings.current_subject || '';
       this.gender = e.chatSettings.broadcaster_gender || '';
+      this.appInfo = e.chatSettings.app_info_json || '';
+
+      this.api = e.chatSettings;
+      this.panel = this._transformPanelHtml(await this._browser.fetch(this.api.getPanelUrl));
     }
 
     if (e.settings) {
@@ -103,61 +177,154 @@ class ChaturbateController extends EventEmitter {
       this.privatesEnabled = !!e.settings.privates_enabled;
       this.room = e.settings.room || '';
 
-      // TODO: maybe exclude 'connecting'?
-      if (e.settings.connected || e.settings.connecting) {
-        this._onSocketOpen();
+      if (e.settings.connecting) {
+        this.state = State.CONNECTING;
+      }
+
+      if (e.settings.connected) {
+        this.state = State.CONNECTED;
       }
     }
+
+    if (e.initializerSettings) {
+      this.modelStatus = (e.initializerSettings.model_status || '').toUpperCase();
+
+      if (e.initializerSettings.joined) {
+        this.state = State.JOINED;
+      }
+    }
+
+    debug(this.settings);
+    this.emit('init', this.settings)
   }
 
+  
   _onSocketOpen() {
-    this.state = 'SOCKET_OPEN';
+    this.state = State.CONNECTING;
   }
 
   _onSocketError() {
-    this.state = 'SOCKET_ERROR';
+    this.state = State.ERROR;
   }
 
-  _onSocketDisconnected() {
-    this.state = 'SOCKET_DISCONNECTED';
+  _onSocketClose() {
+    this.state = State.DISCONNECTED;
   }
 
   _initEventHooks() {
     this._hooks = {
-      'settings_update': (e) => this._onHookSettingsUpdate(e),
-      'title_change': (e) => this._onHookTitleChange(e),
-      'private_show_approved': (e) => this._onHookPrivateShowApproved(e),
-      'group_show_request': (e) => this._onHookGroupShowRequest(e),
-      'room_count': (e) => this._onHookRoomCount(e),
-      'room_entry': (e) => this._onHookRoomEntry(e),
-      'room_leave': (e) => this._onHookRoomLeave(e),
-      'room_message': (e) => this._onHookRoomMessage(e),
-      'tip': (e) => this._onHookTip(e)
+      'auth': this._onHookAuth,
+      'joined_room': this._onHookJoinedRoom,
+      'leave_room': this._onHookLeaveRoom,
+      'personally_kicked': this._onHookPersonallyKicked,
+      'away_mode_cancel': this._onHookAwayModeCancel,
+      'app_tab_refresh': this._onHookAppTabRefresh,
+      'clear_app': this._onHookClearApp,
+      'refresh_panel': this._onHookRefreshPanel,
+      'settings_update': this._onHookSettingsUpdate,
+      'title_change': this._onHookTitleChange,
+      'private_show_approved': this._onHookPrivateShowApproved,
+      'private_show_cancel': this._onHookPrivateShowCancel,
+      'group_show_approve': this._onHookGroupShowApprove,
+      'group_show_cancel': this._onHookGroupShowCancel,
+      'group_show_request': this._onHookGroupShowRequest,
+      'room_count': this._onHookRoomCount,
+      'room_entry': this._onHookRoomEntry,
+      'room_leave': this._onHookRoomLeave,
+      'room_message': this._onHookRoomMessage,
+      'tip': this._onHookTip
     };
   }
 
   _patchEvents() {
     this.eventNames.forEach((name) => {
-      this._events.on(name, (e) => {
+      this._events.on(name, async (e) => {
         if (this._hooks[name]) {
           debug(`hooked event ${name}`);
-          e = this._hooks[name](e);
+          try {
+            e = await this._hooks[name].call(this, e);
+          } catch(e) {
+            debug(`hook failed for ${name}`)
+          }
         }
         this.emit(name, e);
       })
     });
   }
 
-  _onHookSettingsUpdate(e) {
+  _transformPanelHtml(html) {
+    const $ = cheerio.load(html);
+
+    const transformed = $('tr').map((index, el) => {
+      return {
+        label: $(el).find('th').text().replace(/\n/g, '').replace(/:$/g, ''),
+        value: $(el).find('td').text().replace(/\n/g, '')
+      };
+    });
+
+    return transformed.get();
+  }
+
+  async _onHookAuth(e) {
+    if (e.success) {
+      this.state = State.CONNECTED;
+    } else {
+      this.state = State.FAIL;
+    }
+    return e;
+  }
+
+  async _onHookJoinedRoom(e) {
+    this.state = State.JOINED;
+    return e;
+  }
+
+  async _onHookLeaveRoom(e) {
+    this.state = State.LEAVE;
+    return e;
+  }
+
+  async _onHookPersonallyKicked(e) {
+    this.state = State.KICKED;
+  }
+
+  async _onHookAppTabRefresh(e) {
+    const html = await this._browser.fetch(this.api.getPanelUrl);
+    return {
+      'panel': this._transformPanelHtml(html)
+    }
+  }
+
+  async _onHookClearApp(e) {
+    const html = await this._browser.fetch(this.api.getPanelUrl);
+    return {
+      'panel': this._transformPanelHtml(html)
+    }
+  }
+
+  async _onHookRefreshPanel(e) {
+    const html = await this._browser.fetch(this.api.getPanelUrl);
+    return {
+      'panel': this._transformPanelHtml(html)
+    }
+  }
+
+  async _onHookAwayModeCancel(e) {
+    this.modelStatus = ModelStatus.PUBLIC;
+    return e;
+  }
+
+  async _onHookSettingsUpdate(e) {
     this.spyPrice = e.spyPrice;
     this.privatePrice = e.privatePrice;
     this.privatesEnabled = e.privatesEnabled;
     this.groupNumUsersRequired = e.minimumUsersForGroupShow;
     this.groupPrice = e.groupPrice;
     this.groupsEnabled = e.allowGroups;
+    return e;
   }
 
-  _onHookTitleChange(e) {
+  async _onHookTitleChange(e) {
     if (e.title == '') {
       e.title = this.subject;
     } else {
@@ -166,39 +333,56 @@ class ChaturbateController extends EventEmitter {
     return e;
   }
 
-  _onHookPrivateShowApproved(e) {
+  async _onHookPrivateShowApproved(e) {
+    this.modelStatus = ModelStatus.PRIVATE;
     this.privatePrice = e.tokensPerMinute;
     return e;
   }
 
-  _onHookGroupShowRequest(e) {
+  async _onHookPrivateShowCancel(e) {
+    this.modelStatus = ModelStatus.AWAY;
+    return e;
+  }
+
+  async _onHookGroupShowApprove(e) {
+    this.modelStatus = ModelStatus.GROUP;
+    this.groupPrice = e.tokensPerMinute;
+    return e;
+  }
+
+  async _onHookGroupShowCancel() {
+    this.modelStatus = ModelStatus.AWAY;
+    return e;
+  }
+
+  async _onHookGroupShowRequest(e) {
     this.groupNumUsersRequired = e.usersRequired;
     this.groupNumUsersWaiting = e.usersWaiting;
     this.groupPrice = e.tokensPerMinute;
     return e;
   }
 
-  _onHookRoomCount(e) {
+  async _onHookRoomCount(e) {
     this.viewCount = e.count;
     return e;
   }
 
-  _onHookRoomEntry(e) {
+  async _onHookRoomEntry(e) {
     e.user.isHost = e.user.username == this.room;
     return e;
   }
 
-  _onHookRoomLeave(e) {
+  async _onHookRoomLeave(e) {
     e.user.isHost = e.user.username == this.room;
     return e;
   }
 
-  _onHookRoomMessage(e) {
+  async _onHookRoomMessage(e) {
     e.user.isHost = e.user.username == this.room;
     return e;
   }
 
-  _onHookTip(e) {
+  async _onHookTip(e) {
     e.user.isHost = e.user.username == this.room;
     return e;
   }

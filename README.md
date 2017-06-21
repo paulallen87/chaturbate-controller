@@ -43,13 +43,15 @@ setTimeout(() => browser.stop(), 10 * 1000);
 
 ## Properties
   * **state** (string)
-  * **online** (boolean)
+  * **modelStatus** (string)
+  * **appInfo** (Object)
   * **room** (string)
   * **gender** (string)
   * **welcomeMessage** (string)
   * **subject** (string)
   * **spyPrice** (number)
   * **viewCount** (number)
+  * **panel** (Object)
   * **groupsEnabled** (boolean)
   * **groupPrice** (number)
   * **groupNumUsersRequired** (number)
@@ -64,9 +66,23 @@ setTimeout(() => browser.stop(), 10 * 1000);
 
   ##### states
   * INIT
-  * SOCKET_OPEN
-  * SOCKET_ERROR
-  * SOCKET_DISCONNECTED
+  * CONNECTING
+  * CONNECTED
+  * JOINED
+  * LEAVE
+  * KICKED
+  * DISCONNECTED
+  * ERROR
+  * FAIL
+  * OFFLINE
+
+  ### **model_status_change**
+
+  ##### statuses
+  * PUBLIC
+  * AWAY
+  * PRIVATE
+  * GROUP
 
 ## Chaturbate Events
 
