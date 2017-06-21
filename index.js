@@ -140,6 +140,7 @@ class ChaturbateController extends EventEmitter {
   set appInfo(val) {
     this._appInfo = val.split(',').map((app) => {
       const [name, url] = app.split('|');
+      if (!url) return {};
       const [unused, slot] = url.match(/\?slot=(\d+)/);
       return {
         name: name,
