@@ -170,7 +170,9 @@ class ChaturbateController extends EventEmitter {
       this.appInfo = e.chatSettings.app_info_json || '';
 
       this.api = e.chatSettings;
-      this.panel = this._transformPanelHtml(await this._browser.fetch(this.api.getPanelUrl));
+      this.panel = this._transformPanelHtml(await this._browser.fetch(this.api.getPanelUrl, {
+        '_': (new Date()).getTime()
+      }));
     }
 
     if (e.settings) {

@@ -36,7 +36,7 @@ controller.on('tip', (e) => {
 
 await browser.start();
 
-browser.navigate('<username>');
+browser.profile('<username>');
 
 setTimeout(() => browser.stop(), 10 * 1000);
 ```
