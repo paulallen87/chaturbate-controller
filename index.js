@@ -5,6 +5,7 @@ const EventEmitter = require('events').EventEmitter;
 const cheerio = require('cheerio');
 
 const ChaturbateEvents = require('@paulallen87/chaturbate-events');
+const panelParser = require('@paulallen87/chaturbate-panel-parser');
 
 const State = {
   INIT: 'INIT',
@@ -45,6 +46,7 @@ class ChaturbateController extends EventEmitter {
     this._state = null;
     this._modelStatus = null;
     this._appInfo = [];
+    this._goal = null;
 
     // general
     this.room = null;
@@ -75,7 +77,12 @@ class ChaturbateController extends EventEmitter {
   }
 
   get eventNames() {
-    return this._events.names;
+    return this._events.names.concat([
+      'state_change',
+      'model_status_change',
+      'goal_progress',
+      'goal_reached'
+    ]);
   }
 
   get state() {
@@ -102,6 +109,21 @@ class ChaturbateController extends EventEmitter {
     }
   }
 
+  get panelApp() {
+    if (!this.appInfo) return;
+    if (!this.appInfo.length) return;
+    return this.appInfo[0].name;
+  }
+
+  get goal() {
+    return this._goal;
+  }
+
+  set goal(val) {
+    this._checkGoal(this._goal, val);
+    this._goal = val;
+  }
+
   get settings() {
     return {
       state: this.state,
@@ -119,7 +141,8 @@ class ChaturbateController extends EventEmitter {
       privatePrice: this.privatePrice,
       modelStatus: this.modelStatus,
       panel: this.panel,
-      appInfo: this.appInfo
+      appInfo: this.appInfo,
+      goal: this.goal
     }
   }
 
@@ -173,6 +196,7 @@ class ChaturbateController extends EventEmitter {
       this.panel = this._transformPanelHtml(await this._browser.fetch(this.api.getPanelUrl, {
         '_': (new Date()).getTime()
       }));
+      this.goal = panelParser(this.panelApp, this.panel);;
     }
 
     if (e.settings) {
@@ -248,6 +272,7 @@ class ChaturbateController extends EventEmitter {
             e = await this._hooks[name].call(this, e);
           } catch(e) {
             debug(`hook failed for ${name}`)
+            debug(e)
           }
         }
         this.emit(name, e);
@@ -259,13 +284,40 @@ class ChaturbateController extends EventEmitter {
     const $ = cheerio.load(html);
 
     const transformed = $('tr').map((index, el) => {
+      let label = $(el).find('th').text()
+      label = label.replace(/\s*\n\s*/g, '');
+      label = label.replace(/\s*:\s*$/g, '');
+      label = label.replace(/\s*-\s*$/g, '');
+
+      let value = $(el).find('td').text()
+      value = value.replace(/\s*\n\s*/g, '');
+
       return {
-        label: $(el).find('th').text().replace(/\n/g, '').replace(/:$/g, ''),
-        value: $(el).find('td').text().replace(/\n/g, '')
+        label: label,
+        value: value
       };
     });
 
     return transformed.get();
+  }
+
+  _checkGoal(oldGoal, newGoal) {
+    if (!oldGoal || !newGoal) return;
+
+    if (newGoal.goalCurrent != oldGoal.goalCurrent) {
+      this.emit('goal_progress', newGoal);
+    }
+
+    if (this.hasMultipleGoals) {
+      if (newGoal.goalCount > oldGoal.goalCount) {
+        this.emit('goal_reached', newGoal);
+      }
+    }
+    else {
+      if (!newGoal.goalRemaining && oldGoal.goalRemaining) {
+        this.emit('goal_reached', newGoal);
+      }
+    }
   }
 
   async _onHookAuth(e) {
@@ -293,22 +345,31 @@ class ChaturbateController extends EventEmitter {
 
   async _onHookAppTabRefresh(e) {
     const html = await this._browser.fetch(this.api.getPanelUrl);
+    this.panel = this._transformPanelHtml(html);
+    this.goal = panelParser(this.panelApp, this.panel);;
     return {
-      'panel': this._transformPanelHtml(html)
+      'panel': this.panel,
+      'goal': this.goal
     }
   }
 
   async _onHookClearApp(e) {
     const html = await this._browser.fetch(this.api.getPanelUrl);
+    this.panel = this._transformPanelHtml(html);
+    this.goal = panelParser(this.panelApp, this.panel);;
     return {
-      'panel': this._transformPanelHtml(html)
+      'panel': this.panel,
+      'goal': this.goal
     }
   }
 
   async _onHookRefreshPanel(e) {
     const html = await this._browser.fetch(this.api.getPanelUrl);
+    this.panel = this._transformPanelHtml(html);
+    this.goal = panelParser(this.panelApp, this.panel);;
     return {
-      'panel': this._transformPanelHtml(html)
+      'panel': this.panel,
+      'goal': this.goal
     }
   }
 

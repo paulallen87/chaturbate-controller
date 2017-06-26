@@ -84,6 +84,22 @@ setTimeout(() => browser.stop(), 10 * 1000);
   * PRIVATE
   * GROUP
 
+  ### **goal_progress** / **goal_reached**
+
+  ##### params
+  * **hasGoal** (boolean)
+  * **hasMultipleGoals** (boolean)
+  * **goalAmount** (number)
+  * **goalCurrent** (number)
+  * **goalRemaining** (number)
+  * **goalCount** (number)
+  * **goalTotal** (number)
+  * **tipBiggestUsername** (string)
+  * **tipBiggestAmount** (number)
+  * **tipRecentUsername** (string)
+  * **tipRecentAmount** (number)
+  * **tipperCount** (number)
+
 ## Chaturbate Events
 
 All events from [chaturbate-events](https://github.com/paulallen87/chaturbate-events#events) are proxies through this module.
