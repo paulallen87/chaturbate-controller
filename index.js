@@ -344,6 +344,11 @@ class ChaturbateController extends EventEmitter {
   }
 
   async _onHookAppTabRefresh(e) {
+    // Reload the page to get the new apps
+    if (this.room && this.room.length) {
+      await this._browser.profile(this.room);
+    }
+
     const html = await this._browser.fetch(this.api.getPanelUrl);
     this.panel = this._transformPanelHtml(html);
     this.goal = panelParser(this.panelApp, this.panel);;

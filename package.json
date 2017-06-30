@@ -1,6 +1,6 @@
 {
   "name": "@paulallen87/chaturbate-controller",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A module for tracking the state of a Chaturbate profile.",
   "main": "index.js",
   "engines": {
@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@paulallen87/chaturbate-events": "^1.1.3",
-    "@paulallen87/chaturbate-panel-parser": "1.0.0",
+    "@paulallen87/chaturbate-panel-parser": "1.0.1",
     "cheerio": "^1.0.0-rc.1",
     "debug": "^2.6.8"
   }
