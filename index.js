@@ -66,6 +66,34 @@ const ModelStatus = {
 };
 
 /**
+ * Transforms Panel HTML into an object.
+ *
+ * @param {string} html 
+ * @return {Object}
+ * @private
+ */
+const _transformPanelHtml = (html) => {
+  const $ = cheerio.load(html);
+
+  const transformed = $('tr').map((index, el) => {
+    let label = $(el).find('th').text();
+    label = label.replace(/\s*\n\s*/g, '');
+    label = label.replace(/\s*:\s*$/g, '');
+    label = label.replace(/\s*-\s*$/g, '');
+
+    let value = $(el).find('td').text();
+    value = value.replace(/\s*\n\s*/g, '');
+
+    return {
+      label: label,
+      value: value,
+    };
+  });
+
+  return transformed.get();
+};
+
+/**
  * A controller for tracking chaturbate events and states.
  */
 class ChaturbateController extends EventEmitter {
@@ -317,7 +345,7 @@ class ChaturbateController extends EventEmitter {
       this.appInfo = e.chatSettings.app_info_json || '';
 
       this.api = e.chatSettings;
-      this.panel = this._transformPanelHtml(
+      this.panel = _transformPanelHtml(
           await this._browser.fetch(this.api.getPanelUrl, {
             '_': (new Date()).getTime(),
           }));
@@ -432,33 +460,6 @@ class ChaturbateController extends EventEmitter {
   }
 
   /**
-   * Transforms Panel HTML into an object.
-   *
-   * @param {string} html 
-   * @return {Object}
-   */
-  static _transformPanelHtml(html) {
-    const $ = cheerio.load(html);
-
-    const transformed = $('tr').map((index, el) => {
-      let label = $(el).find('th').text();
-      label = label.replace(/\s*\n\s*/g, '');
-      label = label.replace(/\s*:\s*$/g, '');
-      label = label.replace(/\s*-\s*$/g, '');
-
-      let value = $(el).find('td').text();
-      value = value.replace(/\s*\n\s*/g, '');
-
-      return {
-        label: label,
-        value: value,
-      };
-    });
-
-    return transformed.get();
-  }
-
-  /**
    * Manually checks for Goal events.
    *
    * @param {Object} oldGoal 
@@ -541,7 +542,7 @@ class ChaturbateController extends EventEmitter {
     }
 
     const html = await this._browser.fetch(this.api.getPanelUrl);
-    this.panel = this._transformPanelHtml(html);
+    this.panel = _transformPanelHtml(html);
     this.goal = panelParser(this.panelApp, this.panel);
     return {
       'panel': this.panel,
@@ -557,7 +558,7 @@ class ChaturbateController extends EventEmitter {
    */
   async _onHookClearApp(e) {
     const html = await this._browser.fetch(this.api.getPanelUrl);
-    this.panel = this._transformPanelHtml(html);
+    this.panel = _transformPanelHtml(html);
     this.goal = panelParser(this.panelApp, this.panel);
     return {
       'panel': this.panel,
@@ -573,7 +574,7 @@ class ChaturbateController extends EventEmitter {
    */
   async _onHookRefreshPanel(e) {
     const html = await this._browser.fetch(this.api.getPanelUrl);
-    this.panel = this._transformPanelHtml(html);
+    this.panel = _transformPanelHtml(html);
     this.goal = panelParser(this.panelApp, this.panel);
     return {
       'panel': this.panel,
