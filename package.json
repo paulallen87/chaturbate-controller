@@ -1,12 +1,14 @@
 {
   "name": "@paulallen87/chaturbate-controller",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A module for tracking the state of a Chaturbate profile.",
   "main": "index.js",
   "engines": {
     "node": ">=8.0.0"
   },
   "scripts": {
+    "lint": "node_modules/.bin/eslint . --ext js --ignore-path .gitignore",
+    "lint:fix": "node_modules/.bin/eslint --fix . --ext js --ignore-path .gitignore",
     "test": "node_modules/.bin/mocha --reporter spec",
     "cover": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- -R spec test/*"
   },
@@ -26,6 +28,10 @@
   "devDependencies": {
     "chai": "^4.0.2",
     "coveralls": "^2.13.1",
+    "eslint": "^4.1.1",
+    "eslint-config-google": "^0.8.0",
+    "eslint-plugin-jsdoc": "^3.1.1",
+    "eslint-plugin-node": "^5.1.0",
     "istanbul": "next",
     "mocha": "^3.4.2"
   },

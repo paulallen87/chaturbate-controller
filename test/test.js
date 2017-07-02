@@ -1,10 +1,10 @@
 'use strict';
 
-const expect = require('chai').expect;
+const {expect} = require('chai');
 const ChaturbateController = require('../index');
 
 describe('ChaturbateController', () => {
-  it('should pass', () => {
-    expect(true).to.equal(true);
+  it('should be exported', () => {
+    expect(ChaturbateController).to.not.equal(undefined);
   });
 });
