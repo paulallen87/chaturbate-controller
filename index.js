@@ -58,6 +58,9 @@ const ModelStatus = {
   /** The model is in a group show. */
   GROUP: 'GROUP',
 
+  /** The model is in a hidden show. */
+  HIDDEN: 'HIDDEN',
+
   /** The model is in a private show. */
   PRIVATE: 'PRIVATE',
 
@@ -428,6 +431,7 @@ class ChaturbateController extends EventEmitter {
       'group_show_approve': this._onHookGroupShowApprove,
       'group_show_cancel': this._onHookGroupShowCancel,
       'group_show_request': this._onHookGroupShowRequest,
+      'hidden_show_status_change': this._onHookHiddenShowStatusChange,
       'room_count': this._onHookRoomCount,
       'room_entry': this._onHookRoomEntry,
       'room_leave': this._onHookRoomLeave,
@@ -680,6 +684,17 @@ class ChaturbateController extends EventEmitter {
     this.groupNumUsersRequired = e.usersRequired;
     this.groupNumUsersWaiting = e.usersWaiting;
     this.groupPrice = e.tokensPerMinute;
+    return e;
+  }
+
+  /**
+   * Hooks the Hidden Show Status Change event.
+   *
+   * @param {Object} e
+   * @return {Object} 
+   */
+  _onHookHiddenShowStatusChange(e) {
+    this.modelStatus = e.isStarting ? ModelStatus.HIDDEN : ModelStatus.PUBLIC;
     return e;
   }
 
