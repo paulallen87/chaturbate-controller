@@ -1,6 +1,6 @@
 {
   "name": "@paulallen87/chaturbate-controller",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "A module for tracking the state of a Chaturbate profile.",
   "main": "index.js",
   "engines": {

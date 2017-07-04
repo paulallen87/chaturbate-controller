@@ -114,6 +114,7 @@ class ChaturbateController extends EventEmitter {
 
     this._events = new ChaturbateEvents(browser);
     this._events.on('init', (e) => this._onInit(e));
+    this._events.on('socket_hooked', (e) => this._onInit(e));
     this._events.on('socket_open', () => this._onSocketOpen());
     this._events.on('socket_error', (e) => this._onSocketError(e));
     this._events.on('socket_close', (e) => this._onSocketClose(e));
