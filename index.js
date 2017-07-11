@@ -449,11 +449,12 @@ class ChaturbateController extends EventEmitter {
   _patchEvents() {
     this.eventNames.forEach((name) => {
       this._events.on(name, async(e) => {
-        let result = null;
+        let result = e;
         if (this._hooks[name]) {
           debug(`hooked event ${name}`);
           try {
             result = await this._hooks[name].call(this, e);
+            debug(result);
           } catch (err) {
             debug(`hook failed for ${name}`);
             debug(e);
