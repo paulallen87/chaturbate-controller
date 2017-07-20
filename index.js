@@ -478,13 +478,13 @@ class ChaturbateController extends EventEmitter {
       this.emit('goal_progress', newGoal);
     }
 
-    if (this.hasMultipleGoals) {
+    if (newGoal.hasMultipleGoals) {
       if (newGoal.goalCount > oldGoal.goalCount) {
         this.emit('goal_reached', newGoal);
       }
     } else if (!newGoal.goalRemaining && oldGoal.goalRemaining) {
-        this.emit('goal_reached', newGoal);
-      }
+      this.emit('goal_reached', newGoal);
+    }
   }
 
   /**
