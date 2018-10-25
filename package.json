@@ -1,6 +1,6 @@
 {
   "name": "@paulallen87/chaturbate-controller",
-  "version": "1.0.15",
+  "version": "1.2.1",
   "description": "A module for tracking the state of a Chaturbate profile.",
   "main": "index.js",
   "engines": {
@@ -26,19 +26,19 @@
   },
   "homepage": "https://github.com/paulallen87/chaturbate-controller#readme",
   "devDependencies": {
-    "chai": "^4.0.2",
-    "coveralls": "^2.13.1",
-    "eslint": "^4.1.1",
-    "eslint-config-google": "^0.8.0",
-    "eslint-plugin-jsdoc": "^3.1.1",
-    "eslint-plugin-node": "^5.1.0",
+    "chai": "^4.2.0",
+    "coveralls": "^3.0.2",
+    "eslint": "^5.7.0",
+    "eslint-config-google": "^0.11.0",
+    "eslint-plugin-jsdoc": "^3.9.1",
+    "eslint-plugin-node": "^7.0.1",
     "istanbul": "next",
-    "mocha": "^3.4.2"
+    "mocha": "^5.2.0"
   },
   "dependencies": {
-    "@paulallen87/chaturbate-events": "^1.1.6",
-    "@paulallen87/chaturbate-panel-parser": "^1.0.4",
-    "cheerio": "^1.0.0-rc.1",
-    "debug": "^2.6.8"
+    "@paulallen87/chaturbate-events": "^1.2.1",
+    "@paulallen87/chaturbate-panel-parser": "^1.2.1",
+    "cheerio": "^1.0.0-rc.2",
+    "debug": "^4.1.0"
   }
 }
